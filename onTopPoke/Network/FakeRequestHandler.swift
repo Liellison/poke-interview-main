@@ -6,22 +6,32 @@ struct FakeRequestError: Error {}
 ///
 /// This is to be replaced by a proper implementation that actually makes the network call given the APIRoute, parses the response, and returns the resulting object.
 class FakeRequestHandler: RequestHandling {
-    func request<T>(route: APIRoute, completion: @escaping (Result<T, Error>) -> Void) throws {
-        switch route {
-        case .getSpeciesList(let limit, _):
-            if let example = SpeciesResponse.example(count: limit) as? T {
-                completion(.success(example))
+    func request<T: Decodable>(route: APIRoute, completion: @escaping (Result<T, Error>) -> Void) throws {
+        let request = route.asRequest()
+
+        // Fazer a requisição usando URLSession
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
             }
-        default:
-            completion(.failure(FakeRequestError()))
+
+            guard let data = data else {
+                completion(.failure(FakeRequestError()))
+                return
+            }
+
+            do {
+                // Decodificar a resposta para o tipo esperado
+                let decoder = JSONDecoder()
+                let decodedResponse = try decoder.decode(T.self, from: data)
+                completion(.success(decodedResponse))
+            } catch {
+                completion(.failure(error))
+            }
         }
+
+        task.resume()
     }
 }
 
-private extension SpeciesResponse {
-    static func example(count: Int) -> SpeciesResponse {
-        let species = (0..<count).map { Species(name: "Pokémon \($0)", url: URL(string: "https://www.catawiki.com")!) }
-        
-        return SpeciesResponse(count: count, results: species)
-    }
-}

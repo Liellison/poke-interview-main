@@ -26,7 +26,7 @@ class ListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
-        title = "POKéMON"
+        title = "POKÉMON"
 
         setupViews()
         fetchSpecies()
@@ -64,7 +64,9 @@ class ListViewController: UIViewController {
 
     private func didFetchSpecies(response: SpeciesResponse) {
         species = response.results
-        tableView.reloadData()
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
     }
 }
 
