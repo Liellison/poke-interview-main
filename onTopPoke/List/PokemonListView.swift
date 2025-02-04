@@ -1,4 +1,5 @@
 import SwiftUI
+import Network
 
 /// Main view showing the list of Pokémon
 ///
@@ -46,15 +47,37 @@ struct PokemonListView: View {
 
 class PokemonListViewViewModel: ObservableObject {
     @Published var species: [Species] = []
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String? = nil
     private var currentPage = 0
     private let pageSize = 20
     private var isFetching = false
     private let requestHandler: RequestHandling = PokemonRequestHandler()
     
+    private let monitor = NWPathMonitor()
+    private var isConnected = true
+
+    init() {
+        monitor.pathUpdateHandler = { path in
+            DispatchQueue.main.async {
+                self.isConnected = path.status == .satisfied
+            }
+        }
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        monitor.start(queue: queue)
+    }
+
     func fetchNextPage() {
         guard !isFetching else { return }
-        isFetching = true
         
+        guard isConnected else {
+            self.errorMessage = "No internet connection. Please try again later."
+            return
+        }
+        
+        isFetching = true
+        self.isLoading = true
+
         do {
             try requestHandler.request(route: .getSpeciesList(limit: pageSize, offset: currentPage * pageSize)) { [weak self] (result: Result<SpeciesResponse, Error>) in
                 DispatchQueue.main.async {
@@ -62,15 +85,18 @@ class PokemonListViewViewModel: ObservableObject {
                     case .success(let response):
                         self?.species.append(contentsOf: response.results)
                         self?.currentPage += 1
-                    case .failure:
-                        print("TODO handle network failures")
+                    case .failure(let error):
+                        self?.errorMessage = "Error loading data: \(error.localizedDescription)"
                     }
+                    self?.isLoading = false  // Finaliza o carregamento
                     self?.isFetching = false
                 }
             }
         } catch {
-            print("TODO handle request handling failures")
-            isFetching = false
+            self.errorMessage = "Error processing request: \(error.localizedDescription)"
+            self.isLoading = false
+            self.isFetching = false
         }
     }
 }
+
