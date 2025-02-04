@@ -17,6 +17,11 @@ struct PokemonListView: View {
     var body: some View {
         NavigationView {
             List {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .padding()
+                }
                 ForEach(viewModel.species, id: \.name) { species in
                     NavigationLink(destination: DetailsView(species: species)) {
                         HStack {
@@ -56,7 +61,7 @@ class PokemonListViewViewModel: ObservableObject {
     
     private let monitor = NWPathMonitor()
     private var isConnected = true
-
+    
     init() {
         monitor.pathUpdateHandler = { path in
             DispatchQueue.main.async {
@@ -66,7 +71,7 @@ class PokemonListViewViewModel: ObservableObject {
         let queue = DispatchQueue(label: "NetworkMonitor")
         monitor.start(queue: queue)
     }
-
+    
     func fetchNextPage() {
         guard !isFetching else { return }
         
@@ -77,7 +82,7 @@ class PokemonListViewViewModel: ObservableObject {
         
         isFetching = true
         self.isLoading = true
-
+        
         do {
             try requestHandler.request(route: .getSpeciesList(limit: pageSize, offset: currentPage * pageSize)) { [weak self] (result: Result<SpeciesResponse, Error>) in
                 DispatchQueue.main.async {
