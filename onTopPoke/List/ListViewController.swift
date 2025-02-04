@@ -18,7 +18,7 @@ struct ListViewController: View {
         NavigationView {
             List {
                 ForEach(viewModel.species, id: \.name) { species in
-                    NavigationLink(destination: DetailView(species: species)) {
+                    NavigationLink(destination: DetailsView(species: species)) {
                         HStack {
                             AsyncImage(url: species.imageUrl) { image in
                                 image.resizable().scaledToFit()
@@ -73,24 +73,5 @@ class ListViewControllerViewModel: ObservableObject {
             print("TODO handle request handling failures")
             isFetching = false
         }
-    }
-}
-
-struct DetailView: View {
-    let species: Species
-    
-    var body: some View {
-        VStack {
-            AsyncImage(url: species.url) { image in
-                image.resizable().scaledToFit()
-            } placeholder: {
-                ProgressView()
-            }
-            .frame(width: 200, height: 200)
-            
-            Text(species.name.capitalized)
-                .font(.largeTitle)
-        }
-        .navigationTitle(species.name.capitalized)
     }
 }
