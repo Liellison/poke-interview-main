@@ -8,27 +8,28 @@ import SwiftUI
 struct DetailsView: View {
     @State private var species: Species
     @State private var evolutionChain: [Species] = []
-
+    @State private var isAnimating = false
+    
     init(species: Species) {
         _species = State(initialValue: species)
     }
-
+    
     var body: some View {
         VStack {
-            // Imagem e Nome do Pokémon
             AsyncImage(url: species.imageUrl) { image in
-                image.resizable().scaledToFit()
+                image.resizable()
+                    .scaledToFit()
+                    .transition(.opacity.combined(with: .scale))
             } placeholder: {
                 ProgressView()
             }
             .frame(width: 200, height: 200)
-
+            
             Text(species.name.capitalized)
                 .font(.largeTitle)
-
+            
             Divider()
-
-            // Evoluções
+            
             if evolutionChain.isEmpty {
                 Text("Loading evolutions...")
             } else {
@@ -37,19 +38,23 @@ struct DetailsView: View {
                         ForEach(evolutionChain, id: \.name) { evo in
                             VStack {
                                 Button(action: {
-                                    // Atualiza a tela para exibir o Pokémon selecionado
-                                    self.species = evo
-                                    self.evolutionChain = []
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        self.species = evo
+                                        self.evolutionChain = []
+                                    }
                                     fetchSpeciesDetails()
                                 }) {
                                     AsyncImage(url: evo.imageUrl) { image in
-                                        image.resizable().scaledToFit()
+                                        image.resizable()
+                                            .scaledToFit()
+                                            .scaleEffect(isAnimating ? 1.2 : 1.0)
+                                            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isAnimating)
                                     } placeholder: {
                                         ProgressView()
                                     }
                                     .frame(width: 100, height: 100)
                                 }
-
+                                
                                 Text(evo.name.capitalized)
                                     .font(.headline)
                             }
@@ -63,14 +68,13 @@ struct DetailsView: View {
             fetchSpeciesDetails()
         }
     }
-
-    /// Busca os detalhes da espécie para obter a URL da cadeia evolutiva
+    
     private func fetchSpeciesDetails() {
         let request = APIRoute.getSpecies(URL(string: "https://pokeapi.co/api/v2/pokemon-species/\(species.name)")!).asRequest()
-
+        
         URLSession.shared.dataTask(with: request) { data, _, error in
             guard let data = data, error == nil else { return }
-
+            
             do {
                 let decodedResponse = try JSONDecoder().decode(SpeciesDetails.self, from: data)
                 fetchEvolutionChain(from: decodedResponse.evolutionChain.url)
@@ -79,18 +83,17 @@ struct DetailsView: View {
             }
         }.resume()
     }
-
-    /// Busca a cadeia evolutiva a partir da URL
+    
     private func fetchEvolutionChain(from url: URL) {
         let request = APIRoute.getEvolutionChain(url).asRequest()
-
+        
         URLSession.shared.dataTask(with: request) { data, _, error in
             guard let data = data, error == nil else { return }
-
+            
             do {
                 let decodedResponse = try JSONDecoder().decode(EvolutionChainDetails.self, from: data)
                 let evolutions = decodedResponse.chain.getAllEvolutions()
-
+                
                 DispatchQueue.main.async {
                     self.evolutionChain = evolutions
                 }
