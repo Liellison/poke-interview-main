@@ -10,4 +10,13 @@ struct SpeciesResponse: Decodable {
 struct Species: Decodable {
     let name: String
     let url: URL
+    var id: Int? {
+        guard let idString = url.pathComponents.last, let id = Int(idString) else { return nil }
+        return id
+    }
+    
+    var imageUrl: URL? {
+        guard let id = id else { return nil }
+        return URL(string: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/\(id).png")
+    }
 }

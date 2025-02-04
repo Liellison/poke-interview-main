@@ -1,11 +1,11 @@
 import Foundation
 
-struct FakeRequestError: Error {}
+struct PokemonRequestError: Error {}
 
 /// This is RequestHandling implementation returns a hardcoded list of Species.
 ///
 /// This is to be replaced by a proper implementation that actually makes the network call given the APIRoute, parses the response, and returns the resulting object.
-class FakeRequestHandler: RequestHandling {
+class PokemonRequestHandler: RequestHandling {
     func request<T: Decodable>(route: APIRoute, completion: @escaping (Result<T, Error>) -> Void) throws {
         let request = route.asRequest()
 
@@ -17,7 +17,7 @@ class FakeRequestHandler: RequestHandling {
             }
 
             guard let data = data else {
-                completion(.failure(FakeRequestError()))
+                completion(.failure(PokemonRequestError()))
                 return
             }
 

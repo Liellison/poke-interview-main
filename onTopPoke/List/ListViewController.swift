@@ -1,4 +1,4 @@
-import UIKit
+import SwiftUI
 
 /// Main view showing the list of Pokémon
 ///
@@ -10,87 +10,87 @@ import UIKit
 /// - Error handling
 ///
 /// Not required, but feel free to improve/reorganize the ViewController however you like.
-class ListViewController: UIViewController {
-    /// TODO, replace with your own `RequestHandler`
-    private let requestHandler: RequestHandling = FakeRequestHandler()
 
-    private var species: [Species] = []
-
-    private let tableView: UITableView = {
-        let tableView = UITableView()
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.register(ListCell.self, forCellReuseIdentifier: ListCell.reuseIdentifier)
-        return tableView
-    }()
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .white
-        title = "POKÉMON"
-
-        setupViews()
-        fetchSpecies()
+struct ListViewController: View {
+    @StateObject private var viewModel = ListViewControllerViewModel()
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(viewModel.species, id: \.name) { species in
+                    NavigationLink(destination: DetailView(species: species)) {
+                        HStack {
+                            AsyncImage(url: species.imageUrl) { image in
+                                image.resizable().scaledToFit()
+                            } placeholder: {
+                                ProgressView()
+                            }
+                            .frame(width: 50, height: 50)
+                            
+                            Text(species.name.capitalized)
+                        }
+                    }
+                    .onAppear {
+                        if species.name == viewModel.species.last?.name {
+                            viewModel.fetchNextPage()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("POKÉMON")
+        }
+        .onAppear {
+            viewModel.fetchNextPage()
+        }
     }
+}
 
-    private func setupViews() {
-        view.addSubview(tableView)
-
-        NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor)
-        ])
-
-        tableView.dataSource = self
-        tableView.delegate = self
-    }
-
-    private func fetchSpecies() {
+class ListViewControllerViewModel: ObservableObject {
+    @Published var species: [Species] = []
+    private var currentPage = 0
+    private let pageSize = 20
+    private var isFetching = false
+    private let requestHandler: RequestHandling = PokemonRequestHandler()
+    
+    func fetchNextPage() {
+        guard !isFetching else { return }
+        isFetching = true
+        
         do {
-            // TODO Consider pagination
-            try requestHandler.request(route: .getSpeciesList(limit: 20, offset: 0)) { [weak self] (result: Result<SpeciesResponse, Error>) -> Void in
-                switch result {
-                case .success(let response):
-                    self?.didFetchSpecies(response: response)
-                case .failure:
-                    print("TODO handle network failures")
+            try requestHandler.request(route: .getSpeciesList(limit: pageSize, offset: currentPage * pageSize)) { [weak self] (result: Result<SpeciesResponse, Error>) in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let response):
+                        self?.species.append(contentsOf: response.results)
+                        self?.currentPage += 1
+                    case .failure:
+                        print("TODO handle network failures")
+                    }
+                    self?.isFetching = false
                 }
             }
         } catch {
-            print("TODO handle request handling failures failures")
-        }
-    }
-
-    private func didFetchSpecies(response: SpeciesResponse) {
-        species = response.results
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
+            print("TODO handle request handling failures")
+            isFetching = false
         }
     }
 }
 
-extension ListViewController: UITableViewDataSource {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return species.count
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: ListCell.reuseIdentifier, for: indexPath)
-        cell.textLabel?.text = species[indexPath.row].name
-
-        // TODO Fetch the image remotely, based on the Pokémon ID ("list index + 1")
-        // TODO This requires `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{species_id}.png`
-        cell.imageView?.image = UIImage(named: "PlaceholderImage")
-        return cell
-    }
-}
-
-extension ListViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-
-        let viewController = DetailsViewController(species: species[indexPath.row])
-        navigationController?.pushViewController(viewController, animated: true)
+struct DetailView: View {
+    let species: Species
+    
+    var body: some View {
+        VStack {
+            AsyncImage(url: species.url) { image in
+                image.resizable().scaledToFit()
+            } placeholder: {
+                ProgressView()
+            }
+            .frame(width: 200, height: 200)
+            
+            Text(species.name.capitalized)
+                .font(.largeTitle)
+        }
+        .navigationTitle(species.name.capitalized)
     }
 }
