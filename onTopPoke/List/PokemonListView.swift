@@ -10,9 +10,8 @@ import SwiftUI
 /// - Error handling
 ///
 /// Not required, but feel free to improve/reorganize the ViewController however you like.
-
-struct ListViewController: View {
-    @StateObject private var viewModel = ListViewControllerViewModel()
+struct PokemonListView: View {
+    @StateObject private var viewModel = PokemonListViewViewModel()
     
     var body: some View {
         NavigationView {
@@ -45,7 +44,7 @@ struct ListViewController: View {
     }
 }
 
-class ListViewControllerViewModel: ObservableObject {
+class PokemonListViewViewModel: ObservableObject {
     @Published var species: [Species] = []
     private var currentPage = 0
     private let pageSize = 20

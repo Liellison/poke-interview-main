@@ -7,7 +7,7 @@ struct SpeciesResponse: Decodable {
 }
 
 /// Species object returned as part of the `SpeciesResponse` object from the `getSpeciesList` endpoint
-struct Species: Decodable {
+struct Species: Decodable, Equatable {
     let name: String
     let url: URL
     var id: Int? {
