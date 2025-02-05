@@ -5,11 +5,13 @@ import SwiftUI
 /// It now only shows a placeholder image, make it so that it also shows the evolution chain of the selected Pokémon, in whatever way you think works best.
 /// The evolution chain url can be fetched using the endpoint `APIRouter.getSpecies(URL)` (returns type `SpeciesDetails`), and the evolution chain details through `APIRouter.getEvolutionChain(URL)` (returns type `EvolutionChainDetails`).
 /// Requires a working `RequestHandler`
+import SwiftUI
+
 struct DetailsView: View {
     @StateObject private var viewModel: DetailsViewModel
     
-    init(species: Species) {
-        _viewModel = StateObject(wrappedValue: DetailsViewModel(species: species))
+    init(species: Species, service: PokemonServiceProtocol = PokemonService()) {
+        _viewModel = StateObject(wrappedValue: DetailsViewModel(species: species, service: service))
     }
     
     var body: some View {
@@ -37,8 +39,7 @@ struct DetailsView: View {
                             VStack {
                                 Button(action: {
                                     withAnimation(.easeInOut(duration: 0.3)) {
-                                        viewModel.species = evo
-                                        viewModel.evolutionChain = []
+                                        viewModel.updateSpecies(evo)
                                     }
                                     viewModel.fetchSpeciesDetails()
                                 }) {

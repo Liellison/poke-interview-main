@@ -8,19 +8,23 @@
 import Foundation
 import Network
 
-class PokemonListViewViewModel: ObservableObject {
+class PokemonListViewModel: ObservableObject {
     @Published var species: [Species] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
+    
     private var currentPage = 0
     private let pageSize = 20
     private var isFetching = false
-    private let requestHandler: RequestHandling = PokemonRequestHandler()
+    let service: PokemonServiceProtocol
     
     private let monitor = NWPathMonitor()
     private var isConnected = true
     
-    init() {
+    init(service: PokemonServiceProtocol) {
+        self.service = service
+        
+        // Monitor network connectivity
         monitor.pathUpdateHandler = { path in
             DispatchQueue.main.async {
                 self.isConnected = path.status == .satisfied
@@ -30,6 +34,7 @@ class PokemonListViewViewModel: ObservableObject {
         monitor.start(queue: queue)
     }
     
+    /// Fetches the next page of Pokémon from the backend
     func fetchNextPage() {
         guard !isFetching else { return }
         
@@ -39,27 +44,20 @@ class PokemonListViewViewModel: ObservableObject {
         }
         
         isFetching = true
-        self.isLoading = true
+        isLoading = true
         
-        do {
-            try requestHandler.request(route: .getSpeciesList(limit: pageSize, offset: currentPage * pageSize)) { [weak self] (result: Result<SpeciesResponse, Error>) in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success(let response):
-                        self?.species.append(contentsOf: response.results)
-                        self?.currentPage += 1
-                    case .failure(let error):
-                        self?.errorMessage = "Error loading data: \(error.localizedDescription)"
-                    }
-                    self?.isLoading = false  // Finaliza o carregamento
-                    self?.isFetching = false
+        service.fetchPokemonList(limit: pageSize, offset: currentPage * pageSize) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let response):
+                    self?.species.append(contentsOf: response.results)
+                    self?.currentPage += 1
+                case .failure(let error):
+                    self?.errorMessage = "Error loading data: \(error.localizedDescription)"
                 }
+                self?.isLoading = false
+                self?.isFetching = false
             }
-        } catch {
-            self.errorMessage = "Error processing request: \(error.localizedDescription)"
-            self.isLoading = false
-            self.isFetching = false
         }
     }
 }
-
