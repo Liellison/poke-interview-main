@@ -20,7 +20,7 @@ class DetailsViewModel: ObservableObject {
         self.service = service
     }
     
-    /// Busca os detalhes da espécie atual
+    /// Search for current species details
     func fetchSpeciesDetails() {
         service.fetchSpeciesDetails(for: species.name) { [weak self] result in
             switch result {
@@ -32,7 +32,7 @@ class DetailsViewModel: ObservableObject {
         }
     }
     
-    /// Busca a cadeia evolutiva a partir da URL recebida
+    /// Search the evolutionary chain from the received URL
     private func fetchEvolutionChain(from url: URL) {
         service.fetchEvolutionChain(from: url) { [weak self] result in
             switch result {
@@ -47,7 +47,7 @@ class DetailsViewModel: ObservableObject {
         }
     }
     
-    /// Atualiza a espécie atual e reinicia a cadeia evolutiva
+    /// Updates the current species and restarts the evolutionary chain
     func updateSpecies(_ newSpecies: Species) {
         DispatchQueue.main.async {
             self.species = newSpecies
