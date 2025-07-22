@@ -26,8 +26,8 @@ class PokemonService: PokemonServiceProtocol {
     }
     
     /// Fetches the details of a specific Pokémon species.
-    func fetchSpeciesDetails(for speciesName: String, completion: @escaping (Result<SpeciesDetails, Error>) -> Void) {
-        guard let url = URL(string: "https://pokeapi.co/api/v2/pokemon-species/\(speciesName)") else {
+    func fetchSpeciesDetails(for speciesID: Int?, completion: @escaping (Result<SpeciesDetails, Error>) -> Void) {
+        guard let url = URL(string: "https://pokeapi.co/api/v2/pokemon-species/\(speciesID ?? 0)") else {
             completion(.failure(PokemonRequestError()))
             return
         }

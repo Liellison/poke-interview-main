@@ -22,7 +22,7 @@ class DetailsViewModel: ObservableObject {
     
     /// Search for current species details
     func fetchSpeciesDetails() {
-        service.fetchSpeciesDetails(for: species.name) { [weak self] result in
+        service.fetchSpeciesDetails(for: species.id) { [weak self] result in
             switch result {
             case .success(let speciesDetails):
                 self?.fetchEvolutionChain(from: speciesDetails.evolutionChain.url)
